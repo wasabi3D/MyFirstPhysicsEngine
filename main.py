@@ -4,7 +4,11 @@ from pygame.math import Vector2
 from pygame.locals import *
 
 
-e = 0.854
+particle_mass = 15
+meter_px = 115
+e = 0.854  # bounciness
+u = 0.2
+g = 9.81 * meter_px
 
 class TestParticle:
     def __init__(self, mass, position: Vector2, dim):
@@ -20,12 +24,18 @@ class TestParticle:
         for f in fcs:
             net_force += f
 
+        # Bounce
         if self.pos.x > self.dim[0] or self.pos.x < 0:
             self.pos.x = 0 if self.pos.x < 0 else self.dim[0]
             self.velocity.x = e * self.velocity.x * -1
             print(f"{self.velocity.x=}")
         if self.pos.y > self.dim[1] or self.pos.y < 0:
-            self.pos.y = 0 if self.pos.y < 0 else self.dim[1]
+            if self.pos.y < 0:
+                self.pos.y = 0
+            else:
+                self.pos.y = self.dim[1]
+                fr = -1 * u * self.mass * g * Vector2(self.velocity.normalize().x, 0)
+                net_force += fr
             self.velocity.y = e * self.velocity.y * -1
             print(f"{self.velocity.y=}")
 
@@ -46,15 +56,14 @@ d = (800, 800)
 
 screen = pygame.display.set_mode(d)
 
-particle_mass = 15
-meter_px = 85
-forces: list[Vector2] = [Vector2(0, 9.8 * particle_mass * meter_px)]
+forces: list[Vector2] = [Vector2(0, g * particle_mass)]
 
-particle = TestParticle(particle_mass, Vector2(20, 500), d)
+particle = TestParticle(particle_mass, Vector2(250, 700), d)
 
-particle.update([Vector2(7800, -9500)], 1)
+particle.update([Vector2(8000, -44000)], 1)
 t = 0
 d = 0
+tick_count = 0
 
 while True:
     t = pygame.time.get_ticks()
@@ -73,9 +82,14 @@ while True:
             elif event.key == K_LEFT:
                 pass
 
-    particle.update(forces, d / 1000)
+    final_forces = forces.copy()
+    # if tick_count % 1000 == 0:
+    #     print("ye")
+    #     final_forces.append(Vector2(0, -65000))
+    particle.update(final_forces, d / 1000)
     particle.draw(screen)
     pygame.display.update()
     pygame.time.Clock().tick(120)
     d = pygame.time.get_ticks() - t
+    tick_count += 1
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
